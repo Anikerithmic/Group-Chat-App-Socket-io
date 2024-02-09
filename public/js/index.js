@@ -1,5 +1,6 @@
 const socket = io();
 const messageForm = document.querySelector('.conversation-form');
+const messageFormSendFile = document.querySelector('.conversation-form-sendFile');
 const messageInput = document.querySelector('.conversation-form-input');
 const conversationWrapper = document.querySelector('.conversation-wrapper');
 const createGroupButton = document.querySelector('.create-group-button');
@@ -19,8 +20,10 @@ const baseURL = 'http://localhost:5000';
 
 
 document.addEventListener('DOMContentLoaded', async () => { // on domContentloaded initialy it fetches all the messags form the db
+
     conversationWrapper.innerHTML = '';
     messageForm.style.visibility = 'hidden';
+    messageFormSendFile.style.visibility = 'hidden';
     // Load user groups and friends
     await fetchUserFriends()
     await fetchUserGroups();
@@ -198,6 +201,12 @@ document.addEventListener('click', async (event) => {
 
 });
 
+socket.on('chatMessage', (data) => {
+    console.log('Received message:', data);
+    renderMessage(data);
+});
+
+// Add the form submit event listener
 messageForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     const message = messageInput.value.trim();
@@ -210,15 +219,8 @@ messageForm.addEventListener('submit', async (event) => {
         try {
             const token = localStorage.getItem('token');
 
-
+            // Emit the chat message to the server
             socket.emit('chatMessage', { chatType, chatId, message });
-
-            // Listen for incoming chat messages from the server
-            socket.on('chatMessage', (data) => {
-        
-                console.log('Received message:', data);
-                renderMessage(data);
-            });
 
         } catch (error) {
             console.error('Error sending message:', error);
@@ -255,11 +257,14 @@ const renderMessage = (message) => {
 //         const token = localStorage.getItem('token');
 //         let response;
 
-//         if (chatType == 'group') {
-//             response = await axios.get(`${baseURL}/group/${chatId}/newMessages?id=${lastMessageId}`, { headers: { "Authorization": token } });
-//         } else {
-//             response = await axios.get(`${baseURL}/user/${chatId}/newMessages?id=${lastMessageId}`, { headers: { "Authorization": token } });
-//         }
+//         // if (chatType == 'group') {
+//         //     response = await axios.get(`${baseURL}/group/${chatId}/newMessages?id=${lastMessageId}`, { headers: { "Authorization": token } });
+//         // } else {
+//         //     response = await axios.get(`${baseURL}/user/${chatId}/newMessages?id=${lastMessageId}`, { headers: { "Authorization": token } });
+//         // }
+
+//         // Listen for newGroupMessages event emitted by the server
+       
 
 //         if (response.data.newMessages && response.data.newMessages.length > 0) {
 //             response.data.newMessages.forEach(message => {
@@ -281,8 +286,7 @@ const renderMessage = (message) => {
 //     }
 // }
 
-// Listen for newGroupMessages event emitted by the server
-io.on('newGroupMessages', (data) => {
+socket.on('newGroupMessages', (data) => {
     const { groupId, newMessages } = data;
     // Render new messages received from the server
     newMessages.forEach(message => {
@@ -477,6 +481,7 @@ async function openChatForUser(chatId) {
 async function openChatForGroup(groupId) {
     conversationWrapper.innerHTML = '';
     messageForm.style.visibility = 'visible';
+    messageFormSendFile.style.visibility = 'visible';
     try {
         const token = localStorage.getItem('token');
         const response = await axios.get(`${baseURL}/group/${groupId}/messages`, { headers: { "Authorization": token } });
@@ -489,6 +494,45 @@ async function openChatForGroup(groupId) {
         }
     } catch (error) {
         console.error('Error fetching messages for group:', error);
+    }
+}
+
+async function sendFile(event) {
+    console.log('send file is getting triggered');
+    event.preventDefault();
+    const fileInput = document.getElementById("file-input");
+    const formData = new FormData();
+
+    formData.append("image", fileInput.files[0]);
+    console.log('before axios.post("/upload", formData)');
+
+    try {
+        const response = await axios.post(`${baseURL}/upload`, formData, { headers: { "Authorization": token } });
+        console.log("checking response from /upload");
+
+        if (response.status === 200) {
+            const fileUrl = response.data.fileURL;
+            const downloadLink = `<a href="${fileUrl}" download>Open</a>`;
+            console.log('>>>download Link:', downloadLink);
+            const obj = {
+                message: downloadLink, // Send the download link for the image
+                name: name, // Ensure 'name' is defined in the scope
+                groupId: localStorage.getItem("groupId"),
+            };
+
+            console.log('>>>>> before axios.post("/post-chat", obj)');
+            const res = await axios.post(`${baseURL}/group/post-multimedia-message`, obj, { headers: { "Authorization": token } });
+            console.log(res);
+            console.log('>>>>>sending file into post chat, ', obj);
+
+            renderMessage(obj.message);
+
+            // Clear the input and scroll to the bottom
+            fileInput.value = "";
+            // div.scrollTop = div.scrollHeight;
+        }
+    } catch (err) {
+        console.log(err.response);
     }
 }
 

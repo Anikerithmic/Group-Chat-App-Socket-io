@@ -24,17 +24,32 @@ io.on('connection', (socket) => {
 
     // Handle chat messages
     socket.on('chatMessage', (data) => {
-        console.log('chatMessage',data)
-        // Broadcast the message to all connected clients
+        console.log('chatMessage', data)
+        createGroupMessages(data);
+
+        // sending message to all connected clients
         io.emit('chatMessage', data);
-        
+
     });
 
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
-     
+
     });
 });
+
+createGroupMessages = async (data) => {
+    try {
+        const msg = await Message.create({
+            message: data.message,
+            groupId: data.chatId
+        });
+
+    } catch (err) {
+        console.error('Error creating message:', err);
+    }
+};
+
 
 
 app.use(express.urlencoded({ extended: true }));

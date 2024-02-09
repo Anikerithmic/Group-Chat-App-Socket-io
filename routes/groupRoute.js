@@ -1,5 +1,7 @@
 const express = require('express');
 const groupController = require('../controllers/groupController');
+const multer = require('multer');
+const upload = multer({dest: 'uploads/'});
 const userAuthentication = require('../middleware/auth');
 
 const router = express.Router();
@@ -7,7 +9,7 @@ const router = express.Router();
 router.get('/groupChat', groupController.getGroupChat);
 router.post('/createGroup', userAuthentication.authenticate, groupController.createGroup);
 router.get('/userGroups', userAuthentication.authenticate, groupController.getUserGroups);
-router.post('/group/:groupId/message/create', userAuthentication.authenticate, groupController.createGroupMessage);
+// router.post('/group/:groupId/message/create', userAuthentication.authenticate, groupController.createGroupMessage);
 router.get('/group/:groupId/messages', userAuthentication.authenticate, groupController.getGroupMessage);
 
 router.get('/group/:chatId/newMessages', userAuthentication.authenticate, groupController.getGroupNewMessages);
@@ -30,8 +32,11 @@ router.get('/group/:groupId/is-admin', userAuthentication.authenticate, groupCon
 //route to fetch users of group.
 router.post('/group/:groupId/make-admin', userAuthentication.authenticate, groupController.makeUserAdmin);
 
+//posting files thorugh multer
+router.post('/group/upload', userAuthentication.authenticate, upload.single('image'), groupController.uploadFile);
 
-
+//posting the multimedia msg to message table
+router.post('/group/post-multimedia-message', userAuthentication.authenticate, upload.single('image'), groupController.uploadFile);
 
 
 module.exports = router;

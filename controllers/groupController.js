@@ -5,6 +5,8 @@ const Group = require('../models/Group');
 const GroupHandler = require('../models/GroupHandler');
 const { Op } = require('sequelize');
 const jwt = require('jsonwebtoken');
+const AWS = require('aws-sdk');
+const S3Service = require('../services/S3services');
 
 
 exports.getGroupChat = (req, res, next) => {
@@ -25,7 +27,7 @@ exports.createGroup = async (req, res, next) => {
         });
 
         res.status(201).json({ success: true, message: 'Group created successfully', groupData });
-        
+
     }
     catch (error) {
         console.log('Error creating group:', error)
@@ -89,8 +91,8 @@ exports.getGroupNewMessages = async (req, res, next) => {
     try {
         const groupId = req.params.chatId;
         const lastMessageId = req.query.id;
-        console.log('groupId:>>',groupId)
-        console.log('lastMessageId:>>',lastMessageId)
+        console.log('groupId:>>', groupId)
+        console.log('lastMessageId:>>', lastMessageId)
 
         const newMessages = await Message.findAll({
             where: {
@@ -100,7 +102,7 @@ exports.getGroupNewMessages = async (req, res, next) => {
         });
         if (newMessages.length !== 0) {
             io.emit('newGroupMessages', { newMessages: newMessages });
-       
+
         } else {
             io.emit('newGroupMessages', { newMessages: [] });
         }
@@ -178,7 +180,7 @@ exports.getGroupUserList = async (req, res, next) => {
 
         const groupUsers = await GroupHandler.findAll({ where: { groupId: groupId } });
 
-        res.status(200).json({ success: true, groupUsers});
+        res.status(200).json({ success: true, groupUsers });
     } catch (error) {
         console.error('Error getting group users:', error);
         res.status(500).json({ error: error });
@@ -217,7 +219,7 @@ exports.isAdmin = async (req, res, next) => {
 exports.makeUserAdmin = async (req, res, next) => {
     try {
         const groupId = req.params.groupId;
-        const userId = req.body.userid; 
+        const userId = req.body.userid;
 
         const groupHandler = await GroupHandler.findOne({ where: { groupId, userId } });
 
@@ -235,4 +237,16 @@ exports.makeUserAdmin = async (req, res, next) => {
 };
 
 
-
+//function to upload files over the AWS s3 services
+exports.uploadFile = async (req, res) => {
+    try {
+        console.log("file content:> ", req.file);
+        const filename = `user-${req.user.id}_${req.file.filename}_${new Date()}.png`;
+        const fileURL = await S3Service.uploadToS3(req.file.path, filename);
+        console.log('file-url:>>:', fileURL);
+        return res.status(200).json({ success: true, message: fileURL, fileURL });
+    } catch (err) {
+        console.log(err);
+        res.status(500).json(err);
+    }
+}

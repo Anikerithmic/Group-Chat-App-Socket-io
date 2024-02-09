@@ -46,7 +46,8 @@
                     <hr>
                     <h3>Groups:</h3>
                     <div class="groups-container"></div>
-                    <hr><hr>
+                    <hr>
+                    <hr>
                     <div class="group-user-container">
                         <h3>Participants:</h3>
                         <ul class="group-user-list"></ul>
@@ -98,13 +99,21 @@
                             </li>
                         </ul>
                     </div>
-                    <form class="conversation-form">
-                        <div class="conversation-form-group">
-                            <textarea class="conversation-form-input" placeholder="Type here..."></textarea>
-                        </div>
-                        <button type="submit" class="conversation-form-button"><i
-                                class="ri-send-plane-2-line"></i></button>
-                    </form>
+                    <div class="conversation-form-container">
+                        <form class="conversation-form">
+                            <div class="conversation-form-group">
+                                <textarea class="conversation-form-input" placeholder="Type here..."></textarea>
+                            </div>
+                            <button type="submit" class="conversation-form-button"><i
+                                    class="ri-send-plane-2-line"></i></button>
+                        </form>
+                        <form onsubmit="sendFile(event)" enctype="multipart/form-data" class="conversation-form-sendFile">
+                            <input type="file" id="file-input">
+                            <button type="submit" class="conversation-form-button">Send File</button>
+                        </form>
+
+                    </div>
+
                 </div>
             </div>
         </div>

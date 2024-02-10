@@ -31,6 +31,13 @@ io.on('connection', (socket) => {
         io.emit('chatMessage', data);
 
     });
+    socket.on('fileUploaded', (data) => {
+        console.log('fileUploaded', data)
+        storeFileToDB(data);
+
+        // sending file message to all connected clients
+        io.emit('fileMessage', data);
+    })
 
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
@@ -49,6 +56,18 @@ createGroupMessages = async (data) => {
         console.error('Error creating message:', err);
     }
 };
+
+storeFileToDB = async (data) => {
+    try {
+        const msg = await Message.create({
+            message: data.message,
+            groupId: data.chatId
+        });
+
+    } catch (err) {
+        console.error('Error creating file message:', err);
+    }
+}
 
 
 

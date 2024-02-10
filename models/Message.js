@@ -13,7 +13,7 @@ const Message = sequelize.define('message', {
         allowNull: false
     },
     userId: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.INTEGER
         // allowNull: false
     },
     chatId: {

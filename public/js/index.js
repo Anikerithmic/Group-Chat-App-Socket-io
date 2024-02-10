@@ -206,6 +206,12 @@ socket.on('chatMessage', (data) => {
     renderMessage(data);
 });
 
+socket.on('fileMessage', (data) => {
+    console.log('Received file message:', data);
+    renderMessage(data);
+});
+
+
 // Add the form submit event listener
 messageForm.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -220,7 +226,7 @@ messageForm.addEventListener('submit', async (event) => {
             const token = localStorage.getItem('token');
 
             // Emit the chat message to the server
-            socket.emit('chatMessage', { chatType, chatId, message });
+            socket.emit('chatMessage', { chatType, chatId, message, name });
 
         } catch (error) {
             console.error('Error sending message:', error);
@@ -264,7 +270,7 @@ const renderMessage = (message) => {
 //         // }
 
 //         // Listen for newGroupMessages event emitted by the server
-       
+
 
 //         if (response.data.newMessages && response.data.newMessages.length > 0) {
 //             response.data.newMessages.forEach(message => {
@@ -498,41 +504,42 @@ async function openChatForGroup(groupId) {
 }
 
 async function sendFile(event) {
-    console.log('send file is getting triggered');
-    event.preventDefault();
-    const fileInput = document.getElementById("file-input");
-    const formData = new FormData();
-
-    formData.append("image", fileInput.files[0]);
-    console.log('before axios.post("/upload", formData)');
-
     try {
-        const response = await axios.post(`${baseURL}/upload`, formData, { headers: { "Authorization": token } });
-        console.log("checking response from /upload");
+        const token = localStorage.getItem('token');
+        event.preventDefault();
 
-        if (response.status === 200) {
-            const fileUrl = response.data.fileURL;
-            const downloadLink = `<a href="${fileUrl}" download>Open</a>`;
-            console.log('>>>download Link:', downloadLink);
-            const obj = {
-                message: downloadLink, // Send the download link for the image
-                name: name, // Ensure 'name' is defined in the scope
-                groupId: localStorage.getItem("groupId"),
-            };
+        const chatType = messageForm.dataset.chatType;
+        const chatId = messageForm.dataset.chatId;
+        console.log('sendFile-chatType:', chatType)
+        console.log('sendFile-chatId:', chatId)
 
-            console.log('>>>>> before axios.post("/post-chat", obj)');
-            const res = await axios.post(`${baseURL}/group/post-multimedia-message`, obj, { headers: { "Authorization": token } });
-            console.log(res);
-            console.log('>>>>>sending file into post chat, ', obj);
+        const fileInput = document.getElementById("file-input");
+        const formData = new FormData();
 
-            renderMessage(obj.message);
+        if (fileInput.files.length > 0) {
+            formData.append("image", fileInput.files[0]);
 
-            // Clear the input and scroll to the bottom
-            fileInput.value = "";
-            // div.scrollTop = div.scrollHeight;
+            const response = await axios.post(`${baseURL}/group/upload`, formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                    "Authorization": token
+                }
+            });
+            fileInput.innerHTML = '';
+
+            console.log("Response from /upload:", response.data);
+            // If response contains fileURL, emit it via socket
+            if (response.data && response.data.fileURL) {
+                const message = response.data.fileURL;
+                // Assuming you have a socket connection named 'socket'
+                socket.emit('fileUploaded', { message , chatId}); // Emit fileURL to the server
+            }
+
+        } else {
+            console.log('No file selected.');
         }
-    } catch (err) {
-        console.log(err.response);
+    } catch (error) {
+        console.error("Error uploading file:", error);
     }
 }
 

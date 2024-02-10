@@ -7,6 +7,7 @@ const { Op } = require('sequelize');
 const jwt = require('jsonwebtoken');
 const AWS = require('aws-sdk');
 const S3Service = require('../services/S3services');
+const fs = require('fs');
 
 
 exports.getGroupChat = (req, res, next) => {
@@ -240,13 +241,13 @@ exports.makeUserAdmin = async (req, res, next) => {
 //function to upload files over the AWS s3 services
 exports.uploadFile = async (req, res) => {
     try {
-        console.log("file content:> ", req.file);
-        const filename = `user-${req.user.id}_${req.file.filename}_${new Date()}.png`;
-        const fileURL = await S3Service.uploadToS3(req.file.path, filename);
-        console.log('file-url:>>:', fileURL);
-        return res.status(200).json({ success: true, message: fileURL, fileURL });
+        console.log("File content:", req.file);
+        const filename = `user-${req.user.id}_${req.file.filename}_${Date.now()}.png`; // Generate a unique filename
+        const fileURL = await S3Service.uploadToS3(req.file.path, filename); // Upload file to S3
+        console.log('File URL:', fileURL);
+        return res.status(200).json({ success: true, message: "File uploaded successfully", fileURL });
     } catch (err) {
-        console.log(err);
-        res.status(500).json(err);
+        console.error("Error uploading file:", err);
+        return res.status(500).json({ success: false, message: "Failed to upload file", error: err });
     }
-}
+};

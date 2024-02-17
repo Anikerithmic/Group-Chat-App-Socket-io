@@ -39,8 +39,8 @@ exports.getLogin = (req, res, next) => {
 }
 
 exports.postLogin = async (req, res, next) => {
-    try{
-        const {email, password} = req.body;
+    try {
+        const { email, password } = req.body;
         const existingUser = await User.findOne({ where: { email } });
 
         if (!existingUser) {
@@ -52,7 +52,7 @@ exports.postLogin = async (req, res, next) => {
                 return res.status(500).json({ success: false, message: 'Something went wrong' });
             }
             if (result === true) {
-                res.status(200).json({ success: true, message: 'User logged in successfully', token: generateAccessToken(existingUser.id, existingUser.name) });
+                res.status(200).json({ success: true, message: 'User logged in successfully', username: existingUser.name, token: generateAccessToken(existingUser.id, existingUser.name) });
             } else {
                 res.status(401).json({ success: false, message: 'User not authorized' });
             }

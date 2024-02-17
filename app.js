@@ -4,6 +4,8 @@ const http = require('http');
 const express = require('express');
 const port = 5000;
 const path = require('path');
+const jwt = require('jsonwebtoken');
+const userAuthentication = require('./middleware/auth');
 const sequelize = require('./util/database');
 const User = require('./models/User');
 const Message = require('./models/Message');
@@ -22,18 +24,22 @@ const io = new Server(server);
 io.on('connection', (socket) => {
     console.log('A new user has connected:', socket.id);
 
-    // Handle chat messages
+    // Handling chat messages
     socket.on('chatMessage', (data) => {
-        console.log('chatMessage', data)
-        createGroupMessages(data);
+        try {
+            const decoded = jwt.verify(data.token, process.env.SECRET_KEY);
+            createGroupMessages(data, decoded);
 
-        // sending message to all connected clients
-        io.emit('chatMessage', data);
-
+            // Sending the message to all connected clients
+            io.emit('chatMessage', data);
+        } catch (error) {
+            console.error('Error verifying token:', error);
+        }
     });
     socket.on('fileUploaded', (data) => {
         console.log('fileUploaded', data)
-        storeFileToDB(data);
+        const decoded = jwt.verify(data.token, process.env.SECRET_KEY);
+        storeFileToDB(data, decoded);
 
         // sending file message to all connected clients
         io.emit('fileMessage', data);
@@ -45,11 +51,12 @@ io.on('connection', (socket) => {
     });
 });
 
-createGroupMessages = async (data) => {
+createGroupMessages = async (data, decoded) => {
     try {
         const msg = await Message.create({
             message: data.message,
-            groupId: data.chatId
+            groupId: data.chatId,
+            userId: decoded.userId
         });
 
     } catch (err) {
@@ -57,11 +64,12 @@ createGroupMessages = async (data) => {
     }
 };
 
-storeFileToDB = async (data) => {
+storeFileToDB = async (data, decoded) => {
     try {
         const msg = await Message.create({
             message: data.message,
-            groupId: data.chatId
+            groupId: data.chatId,
+            userId: decoded.userId
         });
 
     } catch (err) {

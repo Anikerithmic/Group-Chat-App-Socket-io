@@ -36,7 +36,7 @@ router.post('/group/:groupId/make-admin', userAuthentication.authenticate, group
 router.post('/group/upload', userAuthentication.authenticate, upload.single('image'), groupController.uploadFile);
 
 //posting the multimedia msg to message table
-router.post('/group/post-multimedia-message', userAuthentication.authenticate, upload.single('image'), groupController.uploadFile);
+// router.post('/group/post-multimedia-message', userAuthentication.authenticate, upload.single('image'), groupController.uploadFile);
 
 
 module.exports = router;

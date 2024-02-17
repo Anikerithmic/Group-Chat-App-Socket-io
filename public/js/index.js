@@ -12,32 +12,28 @@ const groupForm = document.querySelector('.group-form');
 const groupNameInput = document.querySelector('.group-name');
 const groupSubmitButton = document.querySelector('.group-submit-button');
 const groupUsersContainer = document.querySelector('.group-user-container');
+const loggedInUser = document.querySelector('.conversation-user-status-online');
 let lastMessageId = null;
-
-
 
 const baseURL = 'http://localhost:5000';
 
-
 document.addEventListener('DOMContentLoaded', async () => { // on domContentloaded initialy it fetches all the messags form the db
-
+    loggedInUser.innerHTML = localStorage.getItem('loggedInUser');
     conversationWrapper.innerHTML = '';
     messageForm.style.visibility = 'hidden';
     messageFormSendFile.style.visibility = 'hidden';
-    // Load user groups and friends
+
+    // for Loading user groups and friends
     await fetchUserFriends()
     await fetchUserGroups();
-    // fetchMessages();
 
-    // // Loading messages from local storage on page load
-    // const storedMessages = localStorage.getItem('messages');
-    // if (storedMessages) {
-    //     const parsedMessages = JSON.parse(storedMessages);
-
-    //     renderMessage(parsedMessages);
-    //     fetchNewMessages();
-    // };
 });
+
+function logout() {
+    localStorage.removeItem('token');
+    window.location.href = "/login";
+}
+
 document.addEventListener('click', async (event) => {
     const target = event.target;
     const token = localStorage.getItem('token');
@@ -208,11 +204,10 @@ socket.on('chatMessage', (data) => {
 
 socket.on('fileMessage', (data) => {
     console.log('Received file message:', data);
-    renderMessage(data);
+    renderMultimediaMessage(data);
 });
 
 
-// Add the form submit event listener
 messageForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     const message = messageInput.value.trim();
@@ -224,9 +219,8 @@ messageForm.addEventListener('submit', async (event) => {
     if (message !== '') {
         try {
             const token = localStorage.getItem('token');
-
             // Emit the chat message to the server
-            socket.emit('chatMessage', { chatType, chatId, message, name });
+            socket.emit('chatMessage', { token, chatType, chatId, message, name });
 
         } catch (error) {
             console.error('Error sending message:', error);
@@ -236,8 +230,27 @@ messageForm.addEventListener('submit', async (event) => {
 });
 
 const renderMessage = (message) => {
+    const loggedInUser = localStorage.getItem('loggedInUser'); 
+    const usersArray = localStorage.getItem('Users'); 
+
+    if (!loggedInUser || !usersArray) {
+        console.error('Logged in user or users array not found in localStorage.');
+        return;
+    }
+    const users = JSON.parse(usersArray);
+
+    // Find the user object with the matching name
+    const user = users.find(u => u.name === loggedInUser);
     const messageItem = document.createElement('li');
-    messageItem.classList.add('conversation-item');
+
+    // Check if user exists and log the id if found
+    if (user.id === message.userId) {
+        messageItem.classList.add('conversation-item');
+    } else {
+        messageItem.classList.add('conversation-item');
+        messageItem.classList.add('me');
+    }
+
     messageItem.innerHTML = `
         <div class="conversation-item-content">
             <div class="conversation-item-wrapper">
@@ -253,44 +266,49 @@ const renderMessage = (message) => {
     lastMessageId = message.id;
 };
 
+const renderMultimediaMessage = (message) => {
 
-// Function to fetch new messages for both user and group chats
-// async function fetchNewMessages(chatId, chatType) {
-//     try {
-//         if (lastMessageId === undefined) {
-//             lastMessageId = 0;
-//         }
-//         const token = localStorage.getItem('token');
-//         let response;
+    const loggedInUser = localStorage.getItem('loggedInUser'); 
+    const usersArray = localStorage.getItem('Users'); 
 
-//         // if (chatType == 'group') {
-//         //     response = await axios.get(`${baseURL}/group/${chatId}/newMessages?id=${lastMessageId}`, { headers: { "Authorization": token } });
-//         // } else {
-//         //     response = await axios.get(`${baseURL}/user/${chatId}/newMessages?id=${lastMessageId}`, { headers: { "Authorization": token } });
-//         // }
+    if (!loggedInUser || !usersArray) {
+        console.error('Logged in user or users array not found in localStorage.');
+        return;
+    }
+    const users = JSON.parse(usersArray);
 
-//         // Listen for newGroupMessages event emitted by the server
+    // Finding the user object with the matching name
+    const user = users.find(u => u.name === loggedInUser);
+    const messageItem = document.createElement('li');
 
+    if (user.id === message.userId) {
+        messageItem.classList.add('conversation-item');
+    } else {
+        messageItem.classList.add('conversation-item');
+        messageItem.classList.add('me');
+    }
 
-//         if (response.data.newMessages && response.data.newMessages.length > 0) {
-//             response.data.newMessages.forEach(message => {
-//                 renderMessage(message);
-//             });
+    messageItem.innerHTML = `
+        <div class="conversation-item-content">
+            <div class="conversation-item-wrapper">
+                <div class="conversation-item-box">
+                    <div class="conversation-item-text">
+                        
+                        <button class="open-message-button">Open message</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
 
-//             // Concatenating the new messages with old stored messages.
-//             let storedMessages = JSON.parse(localStorage.getItem('newMessages')) || [];
-//             storedMessages = storedMessages.concat(response.data.newMessages);
-//             localStorage.setItem('messages', JSON.stringify(storedMessages));
+    const openButton = messageItem.querySelector('.open-message-button');
+    openButton.addEventListener('click', () => {
+        window.open(message.message, '_blank');
+    });
 
-//             // Updating lastMessageId 
-//             lastMessageId = response.data.newMessages[response.data.newMessages.length - 1].id;
-//         } else {
-//             console.log("No new messages");
-//         }
-//     } catch (error) {
-//         console.error('Error fetching new messages:', error);
-//     }
-// }
+    conversationWrapper.appendChild(messageItem);
+    lastMessageId = message.id;
+};
 
 socket.on('newGroupMessages', (data) => {
     const { groupId, newMessages } = data;
@@ -398,8 +416,6 @@ function renderGroups(groups, userGroupsInfo) {
 
 }
 
-
-
 function attachGroupEventListeners(groupOrUserElement, group) {
     const openChatButton = groupOrUserElement.querySelector('.open-chat-button');
 
@@ -411,16 +427,11 @@ function attachGroupEventListeners(groupOrUserElement, group) {
         console.log('chatId:', chatId);
 
         openChatForGroup(chatId);
-
-        // setInterval(async () => {
-        //     await fetchNewMessages(chatId, chatType);
-        // }, 1000);
-
     });
 }
 
 
-// Render user friends in the sidebar
+// Rendering user friends in the sidebar
 
 function renderUsers(users) {
     const userFriendsContainer = document.querySelector('.user-friends-container');
@@ -430,16 +441,14 @@ function renderUsers(users) {
         const userElement = document.createElement('div');
         userElement.classList.add('.user-friend');
         userElement.dataset.chatType = 'user';
-        userElement.dataset.chatId = user.id; // Set the chatId here
+        userElement.dataset.chatId = user.id; 
         userElement.innerHTML = `
             <div class="user-friend-name">${user.id}.${user.name}</div>
-            <div class="user-friend-toggle-button">
+            <div class="user-friend-toggle-button" style="display:none">
                 <button class="open-chat-button">Open Chat</button>
             </div>
         `;
         userFriendsContainer.appendChild(userElement);
-
-        // Attaching event listeners for group actions buttons
         attachUserEventListeners(userElement, user);
     });
 }
@@ -464,7 +473,7 @@ function attachUserEventListeners(userElement, user) {
 }
 
 
-// Function to open chat for group with given ID
+// Function to open chat for group with the ID
 
 async function openChatForUser(chatId) {
     conversationWrapper.innerHTML = '';
@@ -495,7 +504,11 @@ async function openChatForGroup(groupId) {
         if (response.data && Array.isArray(response.data.messages)) {
             conversationWrapper.innerHTML = '';
             response.data.messages.forEach(message => {
-                renderMessage(message);
+                if (message.message.includes("https")) {
+                    renderMultimediaMessage(message);
+                } else {
+                    renderMessage(message);
+                }
             });
         }
     } catch (error) {
@@ -525,14 +538,15 @@ async function sendFile(event) {
                     "Authorization": token
                 }
             });
-            fileInput.innerHTML = '';
+
+            fileInput.value = '';
 
             console.log("Response from /upload:", response.data);
-            // If response contains fileURL, emit it via socket
+            // If response.data contains fileURL then emit it via socket.
             if (response.data && response.data.fileURL) {
                 const message = response.data.fileURL;
-                // Assuming you have a socket connection named 'socket'
-                socket.emit('fileUploaded', { message , chatId}); // Emit fileURL to the server
+                const messageType = 'img';
+                socket.emit('fileUploaded', { token, message, chatId, messageType }); // Emiting the fileURL to the server.
             }
 
         } else {

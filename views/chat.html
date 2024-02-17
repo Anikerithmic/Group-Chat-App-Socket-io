@@ -59,10 +59,12 @@
 
                     <div class="conversation-top">
                         <div class="conversation-user">
-                            <div class="conversation-user-name">Someone</div>
-                            <div class="conversation-user-status-online">online</div>
+                            <div class="conversation-user-name">Logged in user-></div>
+                            <div class="conversation-user-status-online"></div>
                         </div>
+                        <button class="user-logout-btn" onclick="logout()">Logout</button>
                     </div>
+                    
                     <div class="conversation-main">
                         <ul class="conversation-wrapper">
                             <li class="conversation-item">
@@ -81,7 +83,7 @@
 
                                 </div>
                             </li>
-                            <li class="conversation-item me">
+                            <li class="conversation-item-me">
 
                                 <div class="conversation-item-content">
 
@@ -107,9 +109,10 @@
                             <button type="submit" class="conversation-form-button"><i
                                     class="ri-send-plane-2-line"></i></button>
                         </form>
-                        <form onsubmit="sendFile(event)" enctype="multipart/form-data" class="conversation-form-sendFile">
+                        <form onsubmit="sendFile(event)" enctype="multipart/form-data"
+                            class="conversation-form-sendFile">
                             <input type="file" id="file-input">
-                            <button type="submit" class="conversation-form-button">Send File</button>
+                            <button type="submit" class="sendFile-button">Send File</button>
                         </form>
 
                     </div>

@@ -22,10 +22,9 @@ async function onSubmit(e) {
         if (response.data.success == true) {
             alert(response.data.message);
             localStorage.setItem('token', response.data.token);
+            localStorage.setItem('loggedInUser', response.data.username);
             window.location.href = './chat';  
         }
-
-
 
         clearInputs();
         errorMessageContainer.textContent = '';
